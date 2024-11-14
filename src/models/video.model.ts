@@ -1,15 +1,23 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
-type VideoType = {
+interface YogaVideo extends Document {
   title: string;
   url: string;
-};
+  image: string;
+  level: string;
+  time: string;
+  description: string;
+}
 
-const VideoSchema: Schema = new Schema({
-    title: { type: String, required: true},
-    url: { type: String, required: true}
-})
+const YogaVideoSchema: Schema = new Schema({
+  title: { type: String, required: true },
+  url: { type: String, required: true },
+  image: { type: String, required: true },
+  level: { type: String, required: true },
+  time: { type: String, required: true },
+  description: { type: String, required: true },
+});
 
-const Video = mongoose.model<VideoType>("YogaVideo", VideoSchema)
+const YogaVideoModel = mongoose.model<YogaVideo>("YogaVideo", YogaVideoSchema);
 
-export {Video, VideoType}
+export default YogaVideoModel;

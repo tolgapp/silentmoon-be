@@ -5,6 +5,8 @@ import {
   NextFunction,
   RequestHandler,
 } from "express";
+import fs from "fs"
+import path from "path";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
@@ -39,18 +41,19 @@ const verifyToken: RequestHandler = (
   const token = req.cookies["token"];
   if (!token) {
     res.status(401).send("Access denied");
-    return
+    return;
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id: string };
-    req.user = {id: decoded.id}; 
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
+      id: string;
+    };
+    req.user = { id: decoded.id };
     next();
   } catch (error) {
     res.status(403).send("Invalid token");
   }
 };
-
 
 // Welcome route
 router.post("/", (req: Request, res: Response) => {
@@ -112,7 +115,7 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 24 * 60 * 60 * 1000, 
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
     return void res.status(200).json({
@@ -139,68 +142,170 @@ router.post("/logout", (req: Request, res: Response) => {
   res.status(200).json({ message: "Logout successful" });
 });
 
-// Protected Routes
-router.get("/protected", verifyToken, (req, res) => {
-  res.status(200).send("You are authenticated");
-});
+router.get(
+  "/protected",
+  verifyToken,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      if (!req.user?.id) {
+        res.status(400).send("User ID not found.");
+        return;
+      }
 
-router.get("/yoga", verifyToken, (req: Request, res: Response) => {
-  const yogaVideos: Video[] = [
-    { id: 1, title: "Yoga for starter", url: "http://example.com/yoga1" },
-    { id: 2, title: "Advanced Yoga", url: "http://example.com/yoga2" },
-  ];
+      const user = await User.findById(req.user.id).select("name");
+      if (!user) {
+        return void res.status(404).send("User not found.");
+      }
 
-  res.status(200).json(yogaVideos);
-});
-
-router.get("/meditation", verifyToken, (req: Request, res: Response) => {
-  const meditationVideos: Video[] = [
-    { id: 1, title: "Medi for starter", url: "http://example.com/meditation1" },
-    {
-      id: 2,
-      title: "Advanced Meditation",
-      url: "http://example.com/meditation2",
-    },
-  ];
-  res.status(200).json(meditationVideos);
-});
-
-// Die Settings-Route im Backend
-router.post("/settings", verifyToken, async (req: AuthRequest, res: Response) => {
-  const { time, days } = req.body;  // Vom Frontend gesendete Daten
-
-  // Überprüfen, ob die erforderlichen Felder vorhanden sind
-  if (!time || !Array.isArray(days)) {
-     res.status(400).json({ message: "Time and days are required." });
-    return;
-
+      res.status(200).json({
+        message: "You are authenticated",
+        userName: user.name, 
+      });
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      res.status(500).send("Error fetching user data.");
+    }
   }
+);
 
-  const userId = req.user?.id;  // userId aus dem JWT-Token, das in verifyToken gesetzt wurde
+router.get("/yogaVideos", verifyToken, (req: Request, res: Response) => {
+  const filePath = path.join(__dirname, "../data/videos.json");
+  fs.readFile(filePath, "utf8", (err, data) => {
+    if (err) {
+      console.error("Fehler beim Lesen der yogaVideos.json-Datei:", err);
+      res.status(500).json({ message: "Fehler beim Abrufen der Yoga-Videos." });
+      return;
+    }
 
-  // Wenn keine userId vorhanden ist (z.B. wenn das Token ungültig ist)
+    try {
+      const yogaVideos = JSON.parse(data);
+      res.status(200).json(yogaVideos);
+    } catch (parseError) {
+      console.error("Fehler beim Verarbeiten der yogaVideos.json-Datei:", parseError);
+      res.status(500).json({ message: "Fehler beim Verarbeiten der Yoga-Videos." });
+    }
+  });
+});
+
+
+// Audio only
+// router.get("/meditation", verifyToken, (req: Request, res: Response) => {
+//   const meditationVideos: Video[] = [
+//     { id: 1, title: "Medi for starter", url: "http://example.com/meditation1" },
+//     {
+//       id: 2,
+//       title: "Advanced Meditation",
+//       url: "http://example.com/meditation2",
+//     },
+//   ];
+//   res.status(200).json(meditationVideos);
+// });
+
+router.post(
+  "/settings",
+  verifyToken,
+  async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.id;
+    const { time, days } = req.body;
+
+    if (!time || !Array.isArray(days)) {
+      res.status(400).json({ message: "Zeit und Tage sind erforderlich." });
+      return;
+    }
+
+    if (!userId) {
+      res.status(400).json({ message: "Benutzer-ID ist erforderlich." });
+      return;
+    }
+
+    try {
+      const updatedSettings = await Settings.findOneAndUpdate(
+        { userId },
+        { time, days },
+        { new: true, upsert: true }
+      );
+
+      res.status(201).json(updatedSettings);
+    } catch (error) {
+      console.error("Fehler beim Speichern der Einstellungen:", error);
+      res
+        .status(500)
+        .json({ message: "Fehler beim Speichern der Einstellungen." });
+    }
+  }
+);
+
+router.put(
+  "/settings/update",
+  verifyToken,
+  async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.id;
+    const { time, days } = req.body;
+
+    if (!userId) {
+      res.status(400).json({ message: "Benutzer-ID ist erforderlich." });
+      return;
+    }
+
+    if (!time || !Array.isArray(days)) {
+      res.status(400).json({ message: "Zeit und Tage sind erforderlich." });
+      return;
+    }
+
+    try {
+      const updatedSettings = await Settings.findOneAndUpdate(
+        { userId },
+        { time, days },
+        { new: true, upsert: true }
+      );
+
+      res.status(200).json(updatedSettings);
+    } catch (error) {
+      console.error("Fehler beim Aktualisieren der Einstellungen:", error);
+      res
+        .status(500)
+        .json({ message: "Fehler beim Aktualisieren der Einstellungen." });
+    }
+  }
+);
+
+// Backend (router.ts)
+
+// Neue Route für das Abrufen der Benutzereinstellungen
+router.get("/settings", verifyToken, async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id;
+
   if (!userId) {
-     res.status(400).json({ message: "User ID is required." });
-    return;
-
+    return void res.status(400).json({ message: "Benutzer-ID ist erforderlich." });
   }
 
-  // Kombiniere die vom Frontend gesendeten Daten mit der userId aus dem JWT
   try {
-    const newSetting = new Settings({
-      time,
-      days,
-      userId  // Die userId direkt vom request.user
-    });
+    const settings = await Settings.findOne({ userId });
 
-    const savedSetting = await newSetting.save();  // Speichern der neuen Einstellung in der Datenbank
-    res.status(201).json(savedSetting);  // Erfolgreiche Antwort mit den gespeicherten Daten
-    return;
+    if (!settings) {
+      return void res.status(404).json({ message: "Einstellungen nicht gefunden." });
+    }
+
+    res.status(200).json({ settings });
   } catch (error) {
-    console.error("Error saving settings:", error);
-    res.status(500).json({ message: "Error saving settings.", error });
-    return;
+    console.error("Fehler beim Abrufen der Einstellungen:", error);
+    res.status(500).json({ message: "Fehler beim Abrufen der Einstellungen." });
   }
+});
+
+
+// Home
+router.get("/home", verifyToken, (req: Request, res: Response) => {
+  // Example response data for the "home" category
+  const homeData = {
+    message: "Welcome to the home page!",
+    recommendedVideos: [
+      { id: 1, title: "Introduction to Yoga", url: "http://example.com/yogaIntro" },
+      { id: 2, title: "Meditation Basics", url: "http://example.com/meditationBasics" },
+    ],
+  };
+
+  res.status(200).json(homeData);
 });
 
 

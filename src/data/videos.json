@@ -1,0 +1,74 @@
+[
+  {
+    "id": "yoga01",
+    "title": "Morning Energy Boost",
+    "level": "Beginner",
+    "time": "20 min",
+    "image": "/images/yoga01.jpg",
+    "videoUrl": "/videos/Yoga01.mp4",
+    "description": "A refreshing morning yoga sequence to energize your body and mind."
+  },
+  {
+    "id": "yoga02",
+    "title": "Sunset Relaxation Flow",
+    "level": "Intermediate",
+    "time": "25 min",
+    "image": "/images/yoga02.jpg",
+    "videoUrl": "/videos/Yoga02.mp4",
+    "description": "Wind down your day with this calming sunset yoga flow."
+  },
+  {
+    "id": "yoga03",
+    "title": "Power Yoga for Strength",
+    "level": "Advanced",
+    "time": "30 min",
+    "image": "/images/yoga03.jpg",
+    "videoUrl": "/videos/Yoga03.mp4",
+    "description": "Build strength and stamina with this challenging power yoga routine."
+  },
+  {
+    "id": "yoga04",
+    "title": "Gentle Stretch for Flexibility",
+    "level": "Beginner",
+    "time": "15 min",
+    "image": "/images/yoga04.jpg",
+    "videoUrl": "/videos/Yoga04.mp4",
+    "description": "A gentle sequence focused on improving flexibility and releasing tension."
+  },
+  {
+    "id": "yoga05",
+    "title": "Core Strength Flow",
+    "level": "Intermediate",
+    "time": "20 min",
+    "image": "/images/yoga05.jpg",
+    "videoUrl": "/videos/Yoga05.mp4",
+    "description": "Strengthen your core with this focused and engaging yoga flow."
+  },
+  {
+    "id": "yoga06",
+    "title": "Evening Calm Meditation",
+    "level": "All Levels",
+    "time": "10 min",
+    "image": "/images/yoga06.jpg",
+    "videoUrl": "/videos/Yoga06.mp4",
+    "description": "A soothing evening meditation to help you unwind and prepare for restful sleep."
+  },
+  {
+    "id": "yoga07",
+    "title": "Balance and Focus",
+    "level": "Advanced",
+    "time": "35 min",
+    "image": "/images/yoga07.jpg",
+    "videoUrl": "/videos/Yoga07.mp4",
+    "description": "Improve your balance and mental focus with this advanced yoga routine."
+  },
+  {
+    "id": "yoga08",
+    "title": "Full Body Morning Routine",
+    "level": "Intermediate",
+    "time": "40 min",
+    "image": "/images/yoga08.jpg",
+    "videoUrl": "/videos/Yoga08.mp4",
+    "description": "Start your day with a full-body morning routine to wake up and feel revitalized."
+  }
+]

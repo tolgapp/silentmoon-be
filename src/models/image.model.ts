@@ -1,15 +1,17 @@
-import mongoose, { Schema } from "mongoose";
+import { model, Schema, Document } from "mongoose";
 
-type VideoType = {
+interface Image extends Document {
   title: string;
-  url: string;
-};
+  level: string;
+  category: string;
+  description: string;
+}
 
-const VideoSchema: Schema = new Schema({
-    title: { type: String, required: true},
-    url: { type: String, required: true}
-})
+const imageSchema: Schema<Image> = new Schema({
+  title: { type: String, required: true },
+  level: { type: String, required: true },
+  category: { type: String, required: true },
+  description: { type: String, default: "" },
+});
 
-const Video = mongoose.model<VideoType>("YogaVideo", VideoSchema)
-
-export {Video, VideoType}
+export const Image = model<Image>("Image", imageSchema);
