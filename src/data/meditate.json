@@ -1,0 +1,74 @@
+[
+    {
+      "id": "meditate01",
+      "title": "Energy Boost",
+      "level": "Beginner",
+      "time": "6 min",
+      "image": "/images/meditate01.jpg",
+      "audioUri": "/videos/meditate01.mp4",
+      "description": "Morning energy for body, mind"
+    },
+    {
+      "id": "meditate02",
+      "title": "Sunset Calm",
+      "level": "Intermediate",
+      "time": "8 min",
+      "image": "/images/meditate02.jpg",
+      "audioUri": "/videos/meditate02.mp4",
+      "description": "End day with peaceful flow"
+    },
+    {
+      "id": "meditate03",
+      "title": "Power Strength",
+      "level": "Advanced",
+      "time": "10 min",
+      "image": "/images/meditate03.jpg",
+      "audioUri": "/videos/meditate03.mp4",
+      "description": "Challenge strength and stamina"
+    },
+    {
+      "id": "meditate04",
+      "title": "Gentle Flex",
+      "level": "Beginner",
+      "time": "5 min",
+      "image": "/images/meditate04.jpg",
+      "audioUri": "/videos/meditate04.mp4",
+      "description": "Stretch to release tension"
+    },
+    {
+      "id": "meditate05",
+      "title": "Core Flow",
+      "level": "Intermediate",
+      "time": "7 min",
+      "image": "/images/meditate05.jpg",
+      "audioUri": "/videos/meditate05.mp4",
+      "description": "Focused core strengthening"
+    },
+    {
+      "id": "meditate06",
+      "title": "Evening Calm",
+      "level": "All Levels",
+      "time": "6 min",
+      "image": "/images/meditate06.jpg",
+      "audioUri": "/videos/meditate06.mp4",
+      "description": "Unwind for restful sleep"
+    },
+    {
+      "id": "meditate07",
+      "title": "Balance Focus",
+      "level": "Advanced",
+      "time": "9 min",
+      "image": "/images/meditate07.jpg",
+      "audioUri": "/videos/meditate07.mp4",
+      "description": "Enhance balance and focus"
+    },
+    {
+      "id": "meditate08",
+      "title": "Full Morning",
+      "level": "Intermediate",
+      "time": "8 min",
+      "image": "/images/meditate08.jpg",
+      "audioUri": "/videos/meditate08.mp4",
+      "description": "Revitalizing full-body start"
+    }
+]

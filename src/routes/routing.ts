@@ -5,13 +5,14 @@ import {
   NextFunction,
   RequestHandler,
 } from "express";
-import fs from "fs"
+import fs from "fs";
 import path from "path";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import { UserModel as User } from "../models/user.model";
 import Settings from "../models/settings.model";
+import axios, { AxiosError } from "axios";
 
 interface AuthRequest extends Request {
   user?: {
@@ -159,7 +160,7 @@ router.get(
 
       res.status(200).json({
         message: "You are authenticated",
-        userName: user.name, 
+        userName: user.name,
       });
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -168,7 +169,7 @@ router.get(
   }
 );
 
-router.get("/yogaVideos", verifyToken, (req: Request, res: Response) => {
+router.get("/yogavideos", verifyToken, (req: Request, res: Response) => {
   const filePath = path.join(__dirname, "../data/videos.json");
   fs.readFile(filePath, "utf8", (err, data) => {
     if (err) {
@@ -181,25 +182,40 @@ router.get("/yogaVideos", verifyToken, (req: Request, res: Response) => {
       const yogaVideos = JSON.parse(data);
       res.status(200).json(yogaVideos);
     } catch (parseError) {
-      console.error("Fehler beim Verarbeiten der yogaVideos.json-Datei:", parseError);
-      res.status(500).json({ message: "Fehler beim Verarbeiten der Yoga-Videos." });
+      console.error(
+        "Fehler beim Verarbeiten der yogaVideos.json-Datei:",
+        parseError
+      );
+      res
+        .status(500)
+        .json({ message: "Fehler beim Verarbeiten der Yoga-Videos." });
     }
   });
 });
 
+router.get("/meditation", verifyToken, (req: Request, res: Response) => {
+  const filePath = path.join(__dirname, "../data/meditate.json");
+  fs.readFile(filePath, "utf8", (err, data) => {
+    if (err) {
+      console.error("Fehler beim Lesen der meditate.json-Datei:", err);
+      res.status(500).json({ message: "Fehler beim Abrufen der Yoga-Videos." });
+      return;
+    }
 
-// Audio only
-// router.get("/meditation", verifyToken, (req: Request, res: Response) => {
-//   const meditationVideos: Video[] = [
-//     { id: 1, title: "Medi for starter", url: "http://example.com/meditation1" },
-//     {
-//       id: 2,
-//       title: "Advanced Meditation",
-//       url: "http://example.com/meditation2",
-//     },
-//   ];
-//   res.status(200).json(meditationVideos);
-// });
+    try {
+      const meditateData = JSON.parse(data);
+      res.status(200).json(meditateData);
+    } catch (parseError) {
+      console.error(
+        "Fehler beim Verarbeiten der yogaVideos.json-Datei:",
+        parseError
+      );
+      res
+        .status(500)
+        .json({ message: "Fehler beim Verarbeiten der Yoga-Videos." });
+    }
+  });
+});
 
 router.post(
   "/settings",
@@ -269,43 +285,192 @@ router.put(
   }
 );
 
-// Backend (router.ts)
 
-// Neue Route für das Abrufen der Benutzereinstellungen
-router.get("/settings", verifyToken, async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
+router.get(
+  "/settings",
+  verifyToken,
+  async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.id;
 
-  if (!userId) {
-    return void res.status(400).json({ message: "Benutzer-ID ist erforderlich." });
+    if (!userId) {
+      return void res
+        .status(400)
+        .json({ message: "Benutzer-ID ist erforderlich." });
+    }
+
+    try {
+      const settings = await Settings.findOne({ userId });
+
+      if (!settings) {
+        return void res
+          .status(404)
+          .json({ message: "Einstellungen nicht gefunden." });
+      }
+
+      res.status(200).json({ settings });
+    } catch (error) {
+      console.error("Fehler beim Abrufen der Einstellungen:", error);
+      res
+        .status(500)
+        .json({ message: "Fehler beim Abrufen der Einstellungen." });
+    }
+  }
+);
+
+// Home
+router.get("/home", verifyToken, (req: Request, res: Response) => {
+  const homeData = {
+    message: "Welcome to the home page!",
+    
+  };
+
+  res.status(200).json(homeData);
+});
+
+
+// Spotify Auth & Playlists
+const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
+const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
+const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI;
+
+router.post("/spotifytoken", async (req: Request, res: Response) => {
+  const { code }: { code: string } = req.body;
+  console.log("Received authorization code:", code); 
+
+  if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET || !SPOTIFY_REDIRECT_URI) {
+    return void res
+      .status(400)
+      .json({ error: "Spotify credentials are missing" });
   }
 
   try {
-    const settings = await Settings.findOne({ userId });
+    const response = await axios.post(
+      "https://accounts.spotify.com/api/token",
+      new URLSearchParams({
+        grant_type: "authorization_code",
+        code, 
+        redirect_uri: SPOTIFY_REDIRECT_URI,
+        client_id: SPOTIFY_CLIENT_ID,
+        client_secret: SPOTIFY_CLIENT_SECRET,
+      }).toString(),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
 
-    if (!settings) {
-      return void res.status(404).json({ message: "Einstellungen nicht gefunden." });
-    }
+    const { access_token, refresh_token } = response.data;
+    console.log("Access token received:", access_token); 
 
-    res.status(200).json({ settings });
+    return void res.json({ access_token, refresh_token });
   } catch (error) {
-    console.error("Fehler beim Abrufen der Einstellungen:", error);
-    res.status(500).json({ message: "Fehler beim Abrufen der Einstellungen." });
+    const axiosError = error as AxiosError;
+    if (axiosError.response) {
+      console.error("Spotify Token API error response:", axiosError.response.data);
+      return void res.status(500).json({ error: axiosError.response.data });
+    } else if (axiosError.request) {
+      console.error(
+        "No response received from Spotify API:",
+        axiosError.request
+      );
+      return void res
+        .status(500)
+        .json({ error: "No response from Spotify API" });
+    } else {
+      console.error("Error during request setup:", axiosError.message);
+      return void res.status(500).json({ error: axiosError.message });
+    }
   }
 });
 
 
-// Home
-router.get("/home", verifyToken, (req: Request, res: Response) => {
-  // Example response data for the "home" category
-  const homeData = {
-    message: "Welcome to the home page!",
-    recommendedVideos: [
-      { id: 1, title: "Introduction to Yoga", url: "http://example.com/yogaIntro" },
-      { id: 2, title: "Meditation Basics", url: "http://example.com/meditationBasics" },
-    ],
-  };
+router.get(
+  "/spotify/playlists",
+  verifyToken, 
+  async (req: AuthRequest, res: Response) => {
+    const { accessToken } = req.query;
 
-  res.status(200).json(homeData);
+    if (!accessToken) {
+      return void res.status(400).json({ error: "Access Token is required" });
+    }
+
+    try {
+      const response = await axios.get("https://api.spotify.com/v1/search", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        params: {
+          q: "meditation",
+          type: "playlist",
+          limit:20, 
+        },
+      });
+
+      const spotifyPlaylists = response.data.playlists.items.filter(
+        (playlist: any) => playlist.owner.id === "spotify"
+      );
+
+
+      return void res.status(200).json({ playlists: spotifyPlaylists });
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      if (axiosError.response) {
+        console.error(
+          "Spotify API Playlists error response:",
+          axiosError.response.data
+        );
+        return void res.status(500).json({ error: axiosError.response.data });
+      } else if (axiosError.request) {
+        console.error(
+          "No response received from Spotify API:",
+          axiosError.request
+        );
+        return void res
+          .status(500)
+          .json({ error: "No response received from Spotify API" });
+      } else {
+        console.error("Error during request setup:", axiosError.message);
+        return void res.status(500).json({ error: axiosError.message });
+      }
+    }
+  }
+);
+
+
+router.get('/spotify/playlists/:playlistId/tracks', async (req, res) => {
+  console.log(req)
+  const playlistId = req.params.playlistId;
+  const accessToken = req.headers.authorization?.split(' ')[1];
+console.log(accessToken)
+  if (!accessToken) {
+    return void res.status(400).send('Access token is missing');
+  }
+
+  try {
+    const response = await axios.get(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    res.json(response.data); 
+  } catch (error) {
+    // Typisierung des Fehlerobjekts als AxiosError
+    const axiosError = error as AxiosError;
+
+    console.error('Error fetching tracks from Spotify:', axiosError);
+
+    if (axiosError.response) {
+      console.error("Spotify API response error:", axiosError.response.data);
+      return void res.status(500).send(axiosError.response.data); // Detaillierte Fehlerantwort von Spotify zurückgeben
+    } else if (axiosError.request) {
+      console.error("No response received from Spotify:", axiosError.request);
+      return void res.status(500).send('No response from Spotify API');
+    } else {
+      console.error("Error during request setup:", axiosError.message);
+      return void res.status(500).send('Error fetching data from Spotify');
+    }
+  }
 });
 
 

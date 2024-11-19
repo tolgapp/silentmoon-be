@@ -1,7 +1,7 @@
 [
   {
     "id": "yoga01",
-    "title": "Morning Energy Boost",
+    "title": "Energy Boost",
     "level": "Beginner",
     "time": "20 min",
     "image": "/images/yoga01.jpg",
@@ -10,7 +10,7 @@
   },
   {
     "id": "yoga02",
-    "title": "Sunset Relaxation Flow",
+    "title": "Sunset Flow",
     "level": "Intermediate",
     "time": "25 min",
     "image": "/images/yoga02.jpg",
@@ -19,7 +19,7 @@
   },
   {
     "id": "yoga03",
-    "title": "Power Yoga for Strength",
+    "title": "Power Yoga",
     "level": "Advanced",
     "time": "30 min",
     "image": "/images/yoga03.jpg",
@@ -28,7 +28,7 @@
   },
   {
     "id": "yoga04",
-    "title": "Gentle Stretch for Flexibility",
+    "title": "Gentle Stretch",
     "level": "Beginner",
     "time": "15 min",
     "image": "/images/yoga04.jpg",
@@ -37,7 +37,7 @@
   },
   {
     "id": "yoga05",
-    "title": "Core Strength Flow",
+    "title": "Core Flow",
     "level": "Intermediate",
     "time": "20 min",
     "image": "/images/yoga05.jpg",
@@ -46,7 +46,7 @@
   },
   {
     "id": "yoga06",
-    "title": "Evening Calm Meditation",
+    "title": "Evening Calm",
     "level": "All Levels",
     "time": "10 min",
     "image": "/images/yoga06.jpg",
@@ -55,7 +55,7 @@
   },
   {
     "id": "yoga07",
-    "title": "Balance and Focus",
+    "title": "Balance Focus",
     "level": "Advanced",
     "time": "35 min",
     "image": "/images/yoga07.jpg",
@@ -64,7 +64,7 @@
   },
   {
     "id": "yoga08",
-    "title": "Full Body Morning Routine",
+    "title": "Morning Routine",
     "level": "Intermediate",
     "time": "40 min",
     "image": "/images/yoga08.jpg",
