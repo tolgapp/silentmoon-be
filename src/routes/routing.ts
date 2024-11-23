@@ -11,7 +11,6 @@ import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import { UserModel as User } from "../models/user.model";
-import Settings from "../models/settings.model";
 import axios, { AxiosError } from "axios";
 
 interface AuthRequest extends Request {
@@ -125,6 +124,7 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
         id: user._id,
         name: user.name,
         email: user.email,
+        hasCompletedSettings: user.hasCompletedSettings, 
       },
     });
   } catch (error) {
@@ -133,15 +133,23 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+
 router.post("/logout", (req: Request, res: Response) => {
-  res.clearCookie("token", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-  });
-  res.status(200).json({ message: "Logout successful" });
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+    });
+
+    res.status(200).json({ message: "Logout erfolgreich" });
+  } catch (error) {
+    console.error("Fehler beim Logout:", error);
+    res.status(500).json({ message: "Interner Fehler beim Logout" });
+  }
 });
+
 
 router.get(
   "/protected",
@@ -217,36 +225,41 @@ router.get("/meditation", verifyToken, (req: Request, res: Response) => {
   });
 });
 
+// /settings - Route zum Erstellen der Einstellungen
 router.post(
   "/settings",
   verifyToken,
-  async (req: AuthRequest, res: Response) => {
+  async (req: AuthRequest, res: Response): Promise<void> => {
     const userId = req.user?.id;
     const { time, days } = req.body;
 
     if (!time || !Array.isArray(days)) {
-      res.status(400).json({ message: "Zeit und Tage sind erforderlich." });
-      return;
+      return void res.status(400).json({ message: "Zeit und Tage sind erforderlich." });
     }
 
     if (!userId) {
-      res.status(400).json({ message: "Benutzer-ID ist erforderlich." });
-      return;
+      return void res.status(400).json({ message: "Benutzer-ID ist erforderlich." });
     }
 
     try {
-      const updatedSettings = await Settings.findOneAndUpdate(
-        { userId },
-        { time, days },
-        { new: true, upsert: true }
+      // Einstellungen direkt im User-Dokument speichern
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { time, days, hasCompletedSettings: true },
+        { new: true } // Gibt das aktualisierte User-Dokument zurück
       );
 
-      res.status(201).json(updatedSettings);
+      if (!updatedUser) {
+        return void res.status(404).json({ message: "Benutzer nicht gefunden." });
+      }
+
+      return void res.status(201).json({
+        message: "Einstellungen erfolgreich gespeichert.",
+        user: updatedUser,
+      });
     } catch (error) {
       console.error("Fehler beim Speichern der Einstellungen:", error);
-      res
-        .status(500)
-        .json({ message: "Fehler beim Speichern der Einstellungen." });
+      return void res.status(500).json({ message: "Fehler beim Speichern der Einstellungen." });
     }
   }
 );
@@ -254,68 +267,70 @@ router.post(
 router.put(
   "/settings/update",
   verifyToken,
-  async (req: AuthRequest, res: Response) => {
+  async (req: AuthRequest, res: Response): Promise<void> => {
     const userId = req.user?.id;
     const { time, days } = req.body;
 
     if (!userId) {
-      res.status(400).json({ message: "Benutzer-ID ist erforderlich." });
-      return;
+      return void res.status(400).json({ message: "Benutzer-ID ist erforderlich." });
     }
 
     if (!time || !Array.isArray(days)) {
-      res.status(400).json({ message: "Zeit und Tage sind erforderlich." });
-      return;
+      return void res.status(400).json({ message: "Zeit und Tage sind erforderlich." });
     }
 
     try {
-      const updatedSettings = await Settings.findOneAndUpdate(
-        { userId },
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
         { time, days },
-        { new: true, upsert: true }
+        { new: true } 
       );
 
-      res.status(200).json(updatedSettings);
+      if (!updatedUser) {
+        return void res.status(404).json({ message: "Benutzer nicht gefunden." });
+      }
+
+      return void res.status(200).json({
+        message: "Einstellungen erfolgreich aktualisiert.",
+        user: updatedUser,
+      });
     } catch (error) {
       console.error("Fehler beim Aktualisieren der Einstellungen:", error);
-      res
-        .status(500)
-        .json({ message: "Fehler beim Aktualisieren der Einstellungen." });
+      return void res.status(500).json({ message: "Fehler beim Aktualisieren der Einstellungen." });
     }
   }
 );
-
 
 router.get(
   "/settings",
   verifyToken,
-  async (req: AuthRequest, res: Response) => {
+  async (req: AuthRequest, res: Response): Promise<void> => {
     const userId = req.user?.id;
 
     if (!userId) {
-      return void res
-        .status(400)
-        .json({ message: "Benutzer-ID ist erforderlich." });
+      return void res.status(400).json({ message: "Benutzer-ID ist erforderlich." });
     }
 
     try {
-      const settings = await Settings.findOne({ userId });
+      const user = await User.findById(userId).select("time days hasCompletedSettings");
 
-      if (!settings) {
-        return void res
-          .status(404)
-          .json({ message: "Einstellungen nicht gefunden." });
+      if (!user) {
+        return void res.status(404).json({ message: "Benutzer nicht gefunden." });
       }
 
-      res.status(200).json({ settings });
+      return void res.status(200).json({
+        time: user.time,
+        days: user.days,
+        hasCompletedSettings: user.hasCompletedSettings,
+      });
     } catch (error) {
       console.error("Fehler beim Abrufen der Einstellungen:", error);
-      res
-        .status(500)
-        .json({ message: "Fehler beim Abrufen der Einstellungen." });
+      return void res.status(500).json({ message: "Fehler beim Abrufen der Einstellungen." });
     }
   }
 );
+
+
 
 // Home
 router.get("/home", verifyToken, (req: Request, res: Response) => {
@@ -331,16 +346,35 @@ router.get("/home", verifyToken, (req: Request, res: Response) => {
 // Spotify Auth & Playlists
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
-const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI;
 
+const SPOTIFY_REDIRECT_URIS: string[] = JSON.parse(
+  process.env.SPOTIFY_REDIRECT_URIS || "[]"
+);
+
+if (!Array.isArray(SPOTIFY_REDIRECT_URIS) || SPOTIFY_REDIRECT_URIS.length === 0) {
+  console.error("SPOTIFY_REDIRECT_URIS is not configured correctly in the environment.");
+}
 router.post("/spotifytoken", async (req: Request, res: Response) => {
-  const { code }: { code: string } = req.body;
-  console.log("Received authorization code:", code); 
+  const { code, pathname }: { code: string; pathname?: string } = req.body;
 
-  if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET || !SPOTIFY_REDIRECT_URI) {
-    return void res
-      .status(400)
-      .json({ error: "Spotify credentials are missing" });
+  if (!code) {
+    return void res.status(400).json({ error: "Code fehlt in der Anfrage." });
+  }
+
+  console.log("Empfangener Pfad:", pathname); // Debugging
+
+  // Wähle die Redirect-URI basierend auf dem Pfad
+  let redirectUri = "";
+  if (pathname === "/music") {
+    redirectUri = process.env.VITE_MUSIC_REDIRECT_URI || "";
+  } else if (pathname === "/meditation") {
+    redirectUri = process.env.VITE_MEDI_REDIRECT_URI || "";
+  } else {
+    return void res.status(400).json({ error: "Ungültiger Pfad oder Redirect URI fehlt." });
+  }
+
+  if (!redirectUri) {
+    return void res.status(500).json({ error: "Redirect URI ist nicht konfiguriert." });
   }
 
   try {
@@ -348,10 +382,10 @@ router.post("/spotifytoken", async (req: Request, res: Response) => {
       "https://accounts.spotify.com/api/token",
       new URLSearchParams({
         grant_type: "authorization_code",
-        code, 
-        redirect_uri: SPOTIFY_REDIRECT_URI,
-        client_id: SPOTIFY_CLIENT_ID,
-        client_secret: SPOTIFY_CLIENT_SECRET,
+        code,
+        redirect_uri: redirectUri,
+        client_id: process.env.SPOTIFY_CLIENT_ID || "",
+        client_secret: process.env.SPOTIFY_CLIENT_SECRET || "",
       }).toString(),
       {
         headers: {
@@ -361,88 +395,59 @@ router.post("/spotifytoken", async (req: Request, res: Response) => {
     );
 
     const { access_token, refresh_token } = response.data;
-    console.log("Access token received:", access_token); 
-
-    return void res.json({ access_token, refresh_token });
+    res.json({ access_token, refresh_token });
   } catch (error) {
-    const axiosError = error as AxiosError;
-    if (axiosError.response) {
-      console.error("Spotify Token API error response:", axiosError.response.data);
-      return void res.status(500).json({ error: axiosError.response.data });
-    } else if (axiosError.request) {
-      console.error(
-        "No response received from Spotify API:",
-        axiosError.request
-      );
-      return void res
-        .status(500)
-        .json({ error: "No response from Spotify API" });
+    console.error("Fehler bei der Spotify-Token-Anfrage:", error);
+    res.status(500).json({ error: "Spotify-Token-Anfrage fehlgeschlagen." });
+  }
+});
+
+
+
+
+router.get('/spotify/playlists', verifyToken, async (req: AuthRequest, res: Response) => {
+  const accessToken = req.headers.authorization?.split(' ')[1]; 
+  
+  if (!accessToken) {
+    return void  res.status(400).json({ error: "Access Token is required" });
+  }
+
+
+  const query = req.query.q || "meditation"; 
+  
+  try {
+    const response = await axios.get("https://api.spotify.com/v1/search", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      params: {
+        q: query, 
+        type: "playlist",
+        limit: 20,
+      },
+    });
+
+    const spotifyPlaylists = response.data.playlists.items.filter(
+      (playlist: any) => playlist.owner.id === "spotify"
+    );
+
+    return void res.status(200).json({ playlists: spotifyPlaylists });
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error("Spotify API error:", error.response?.data || error.message);
+      return void res.status(500).json({ error: "Failed to fetch playlists" });
     } else {
-      console.error("Error during request setup:", axiosError.message);
-      return void res.status(500).json({ error: axiosError.message });
+      console.error("Unexpected error:", error);
+      return void res.status(500).json({ error: "Unexpected error occurred" });
     }
   }
 });
 
 
-router.get(
-  "/spotify/playlists",
-  verifyToken, 
-  async (req: AuthRequest, res: Response) => {
-    const { accessToken } = req.query;
-
-    if (!accessToken) {
-      return void res.status(400).json({ error: "Access Token is required" });
-    }
-
-    try {
-      const response = await axios.get("https://api.spotify.com/v1/search", {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        params: {
-          q: "meditation",
-          type: "playlist",
-          limit:20, 
-        },
-      });
-
-      const spotifyPlaylists = response.data.playlists.items.filter(
-        (playlist: any) => playlist.owner.id === "spotify"
-      );
-
-
-      return void res.status(200).json({ playlists: spotifyPlaylists });
-    } catch (error) {
-      const axiosError = error as AxiosError;
-      if (axiosError.response) {
-        console.error(
-          "Spotify API Playlists error response:",
-          axiosError.response.data
-        );
-        return void res.status(500).json({ error: axiosError.response.data });
-      } else if (axiosError.request) {
-        console.error(
-          "No response received from Spotify API:",
-          axiosError.request
-        );
-        return void res
-          .status(500)
-          .json({ error: "No response received from Spotify API" });
-      } else {
-        console.error("Error during request setup:", axiosError.message);
-        return void res.status(500).json({ error: axiosError.message });
-      }
-    }
-  }
-);
-
 
 router.get('/spotify/playlists/:playlistId/tracks', async (req, res) => {
-  console.log(req)
   const playlistId = req.params.playlistId;
   const accessToken = req.headers.authorization?.split(' ')[1];
-console.log(accessToken)
   if (!accessToken) {
     return void res.status(400).send('Access token is missing');
   }
@@ -455,14 +460,14 @@ console.log(accessToken)
     });
     res.json(response.data); 
   } catch (error) {
-    // Typisierung des Fehlerobjekts als AxiosError
+   
     const axiosError = error as AxiosError;
 
     console.error('Error fetching tracks from Spotify:', axiosError);
 
     if (axiosError.response) {
       console.error("Spotify API response error:", axiosError.response.data);
-      return void res.status(500).send(axiosError.response.data); // Detaillierte Fehlerantwort von Spotify zurückgeben
+      return void res.status(500).send(axiosError.response.data); 
     } else if (axiosError.request) {
       console.error("No response received from Spotify:", axiosError.request);
       return void res.status(500).send('No response from Spotify API');
@@ -472,6 +477,158 @@ console.log(accessToken)
     }
   }
 });
+
+// router.get("/favorites/video/status", async (req, res) => {
+//   const { userId, contentId } = req.query;
+
+//   try {
+//     const user = await User.findById(userId);
+//     console.log("Status", user)
+//     if (!user) {
+//       return void res.status(404).json({ isFavorite: false });
+//     }
+
+//     const isFavorite = user.videoFavorites?.some(
+//       (fav) => fav.contentId === contentId
+//     );
+//     console.log("Is Favorite", isFavorite)
+
+//     res.status(200).json({ isFavorite });
+//   } catch (error) {
+//     res.status(500).json({ message: "Error fetching favorite status", error });
+//   }
+// });
+
+
+router.post("/favorites/audio/add", async (req, res) => {
+  const { userId, contentId } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return void res.status(404).json({ message: "User not found" });
+    }
+
+    const exists = user.audioFavorites?.some((fav) => fav.contentId === contentId);
+    if (exists) {
+      return void res.status(400).json({ message: "Audio already in favorites" });
+    }
+
+    user.audioFavorites?.push({ contentId, addedAt: new Date() });
+    await user.save();
+    res.status(200).json({ message: "Audio added to favorites" });
+  } catch (error) {
+    res.status(500).json({ message: "Error adding audio to favorites", error });
+  }
+});
+
+router.post("/favorites/audio/remove", async (req, res) => {
+  const { userId, contentId } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return void res.status(404).json({ message: "User not found" });
+    }
+
+    user.audioFavorites = user.audioFavorites?.filter((fav) => fav.contentId !== contentId);
+
+    await user.save();
+    res.status(200).json({ message: "Audio removed from favorites" });
+  } catch (error) {
+    res.status(500).json({ message: "Error removing audio from favorites", error });
+  }
+});
+
+router.post("/favorites/video/add", async (req: Request, res: Response): Promise<void> => {
+  const { userId, contentId } = req.body;
+
+  if (!userId || !userId.match(/^[0-9a-fA-F]{24}$/)) {
+    return void res.status(400).json({ message: "Invalid or missing userId" });
+  }
+
+  const cleanedContentId = contentId.replace(/^https?:\/\/[^/]+/, "");
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return void res.status(404).json({ message: "User not found" });
+    }
+
+    const exists = user.videoFavorites?.some((fav) => fav.contentId === cleanedContentId);
+    if (exists) {
+      return void res.status(400).json({ message: "Video already in favorites" });
+    }
+
+    user.videoFavorites = user.videoFavorites || [];
+    user.videoFavorites.push({ contentId: cleanedContentId, addedAt: new Date() });
+
+    await user.save();
+    res.status(200).json({ message: "Video added to favorites" });
+  } catch (error) {
+    console.error("Error in /favorites/video/add:", error);
+    res.status(500).json({ message: "Internal server error", error });
+  }
+});
+
+// POST: Video aus Favoriten entfernen
+router.post("/favorites/video/remove", async (req: Request, res: Response): Promise<void> => {
+  const { userId, contentId } = req.body;
+
+  if (!userId || !userId.match(/^[0-9a-fA-F]{24}$/)) {
+    return void res.status(400).json({ message: "Invalid or missing userId" });
+  }
+
+  const cleanedContentId = contentId.replace(/^https?:\/\/[^/]+/, "");
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return void res.status(404).json({ message: "User not found" });
+    }
+
+    user.videoFavorites = user.videoFavorites?.filter(
+      (fav) => fav.contentId !== cleanedContentId
+    );
+
+    await user.save();
+    res.status(200).json({ message: "Video removed from favorites" });
+  } catch (error) {
+    console.error("Error in /favorites/video/remove:", error);
+    res.status(500).json({ message: "Error removing video from favorites", error });
+  }
+});
+
+// GET: Favoritenstatus prüfen
+router.get("/favoritevideos", async (req: Request, res: Response): Promise<void> => {
+  const { userId, contentId } = req.query as { userId: string; contentId: string };
+
+  if (!userId || !userId.match(/^[0-9a-fA-F]{24}$/) || !contentId) {
+    return void res.status(400).json({ message: "userId and contentId are required" });
+  }
+
+  const cleanedContentId = contentId.replace(/^https?:\/\/[^/]+/, "");
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return void res.status(404).json({ message: "User not found" });
+    }
+
+    // Check if the video is in the user's favorites
+    const isFavorite = user.videoFavorites?.some((fav) => fav.contentId === cleanedContentId);
+
+    // Send response based on whether the video is in the favorites
+    return void res.status(200).json({ isFavorite: !!isFavorite });
+  } catch (error) {
+    console.error("Error in /favoritevideos:", error);
+    return void res.status(500).json({ message: "Server error", error: error instanceof Error ? error.message : error });
+  }
+});
+
+
+
+
 
 
 export default router;

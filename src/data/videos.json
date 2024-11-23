@@ -6,7 +6,8 @@
     "time": "20 min",
     "image": "/images/yoga01.jpg",
     "videoUrl": "/videos/Yoga01.mp4",
-    "description": "A refreshing morning yoga sequence to energize your body and mind."
+    "description": "A refreshing morning yoga sequence to energize your body and mind.",
+    "types": ["All", "Kids"]
   },
   {
     "id": "yoga02",
@@ -15,7 +16,8 @@
     "time": "25 min",
     "image": "/images/yoga02.jpg",
     "videoUrl": "/videos/Yoga02.mp4",
-    "description": "Wind down your day with this calming sunset yoga flow."
+    "description": "Wind down your day with this calming sunset yoga flow.",
+    "types": ["All", "Sleep"]
   },
   {
     "id": "yoga03",
@@ -24,7 +26,8 @@
     "time": "30 min",
     "image": "/images/yoga03.jpg",
     "videoUrl": "/videos/Yoga03.mp4",
-    "description": "Build strength and stamina with this challenging power yoga routine."
+    "description": "Build strength and stamina with this challenging power yoga routine.",
+    "types": ["All", "Anxious"]
   },
   {
     "id": "yoga04",
@@ -33,7 +36,8 @@
     "time": "15 min",
     "image": "/images/yoga04.jpg",
     "videoUrl": "/videos/Yoga04.mp4",
-    "description": "A gentle sequence focused on improving flexibility and releasing tension."
+    "description": "A gentle sequence focused on improving flexibility and releasing tension.",
+    "types": ["All"]
   },
   {
     "id": "yoga05",
@@ -42,7 +46,8 @@
     "time": "20 min",
     "image": "/images/yoga05.jpg",
     "videoUrl": "/videos/Yoga05.mp4",
-    "description": "Strengthen your core with this focused and engaging yoga flow."
+    "description": "Strengthen your core with this focused and engaging yoga flow.",
+    "types": ["All", "Anxious"]
   },
   {
     "id": "yoga06",
@@ -51,7 +56,8 @@
     "time": "10 min",
     "image": "/images/yoga06.jpg",
     "videoUrl": "/videos/Yoga06.mp4",
-    "description": "A soothing evening meditation to help you unwind and prepare for restful sleep."
+    "description": "A soothing evening meditation to help you unwind and prepare for restful sleep.",
+    "types": ["All", "Sleep"]
   },
   {
     "id": "yoga07",
@@ -60,7 +66,8 @@
     "time": "35 min",
     "image": "/images/yoga07.jpg",
     "videoUrl": "/videos/Yoga07.mp4",
-    "description": "Improve your balance and mental focus with this advanced yoga routine."
+    "description": "Improve your balance and mental focus with this advanced yoga routine.",
+    "types": ["All", "Anxious"]
   },
   {
     "id": "yoga08",
@@ -69,6 +76,7 @@
     "time": "40 min",
     "image": "/images/yoga08.jpg",
     "videoUrl": "/videos/Yoga08.mp4",
-    "description": "Start your day with a full-body morning routine to wake up and feel revitalized."
+    "description": "Start your day with a full-body morning routine to wake up and feel revitalized.",
+    "types": ["All", "Kids"]
   }
 ]
