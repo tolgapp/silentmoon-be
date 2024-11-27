@@ -23,6 +23,7 @@ interface Video {
   id: number;
   title: string;
   url: string;
+  videoUrl: string
 }
 
 dotenv.config();
@@ -124,7 +125,7 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
         id: user._id,
         name: user.name,
         email: user.email,
-        hasCompletedSettings: user.hasCompletedSettings, 
+        hasCompletedSettings: user.hasCompletedSettings,
       },
     });
   } catch (error) {
@@ -132,7 +133,6 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
     return void res.status(500).send("Login error");
   }
 });
-
 
 router.post("/logout", (req: Request, res: Response) => {
   try {
@@ -149,7 +149,6 @@ router.post("/logout", (req: Request, res: Response) => {
     res.status(500).json({ message: "Interner Fehler beim Logout" });
   }
 });
-
 
 router.get(
   "/protected",
@@ -234,11 +233,15 @@ router.post(
     const { time, days } = req.body;
 
     if (!time || !Array.isArray(days)) {
-      return void res.status(400).json({ message: "Zeit und Tage sind erforderlich." });
+      return void res
+        .status(400)
+        .json({ message: "Zeit und Tage sind erforderlich." });
     }
 
     if (!userId) {
-      return void res.status(400).json({ message: "Benutzer-ID ist erforderlich." });
+      return void res
+        .status(400)
+        .json({ message: "Benutzer-ID ist erforderlich." });
     }
 
     try {
@@ -250,7 +253,9 @@ router.post(
       );
 
       if (!updatedUser) {
-        return void res.status(404).json({ message: "Benutzer nicht gefunden." });
+        return void res
+          .status(404)
+          .json({ message: "Benutzer nicht gefunden." });
       }
 
       return void res.status(201).json({
@@ -259,7 +264,9 @@ router.post(
       });
     } catch (error) {
       console.error("Fehler beim Speichern der Einstellungen:", error);
-      return void res.status(500).json({ message: "Fehler beim Speichern der Einstellungen." });
+      return void res
+        .status(500)
+        .json({ message: "Fehler beim Speichern der Einstellungen." });
     }
   }
 );
@@ -272,22 +279,28 @@ router.put(
     const { time, days } = req.body;
 
     if (!userId) {
-      return void res.status(400).json({ message: "Benutzer-ID ist erforderlich." });
+      return void res
+        .status(400)
+        .json({ message: "Benutzer-ID ist erforderlich." });
     }
 
     if (!time || !Array.isArray(days)) {
-      return void res.status(400).json({ message: "Zeit und Tage sind erforderlich." });
+      return void res
+        .status(400)
+        .json({ message: "Zeit und Tage sind erforderlich." });
     }
 
     try {
       const updatedUser = await User.findByIdAndUpdate(
         userId,
         { time, days },
-        { new: true } 
+        { new: true }
       );
 
       if (!updatedUser) {
-        return void res.status(404).json({ message: "Benutzer nicht gefunden." });
+        return void res
+          .status(404)
+          .json({ message: "Benutzer nicht gefunden." });
       }
 
       return void res.status(200).json({
@@ -296,7 +309,9 @@ router.put(
       });
     } catch (error) {
       console.error("Fehler beim Aktualisieren der Einstellungen:", error);
-      return void res.status(500).json({ message: "Fehler beim Aktualisieren der Einstellungen." });
+      return void res
+        .status(500)
+        .json({ message: "Fehler beim Aktualisieren der Einstellungen." });
     }
   }
 );
@@ -308,14 +323,20 @@ router.get(
     const userId = req.user?.id;
 
     if (!userId) {
-      return void res.status(400).json({ message: "Benutzer-ID ist erforderlich." });
+      return void res
+        .status(400)
+        .json({ message: "Benutzer-ID ist erforderlich." });
     }
 
     try {
-      const user = await User.findById(userId).select("time days hasCompletedSettings");
+      const user = await User.findById(userId).select(
+        "time days hasCompletedSettings"
+      );
 
       if (!user) {
-        return void res.status(404).json({ message: "Benutzer nicht gefunden." });
+        return void res
+          .status(404)
+          .json({ message: "Benutzer nicht gefunden." });
       }
 
       return void res.status(200).json({
@@ -325,35 +346,26 @@ router.get(
       });
     } catch (error) {
       console.error("Fehler beim Abrufen der Einstellungen:", error);
-      return void res.status(500).json({ message: "Fehler beim Abrufen der Einstellungen." });
+      return void res
+        .status(500)
+        .json({ message: "Fehler beim Abrufen der Einstellungen." });
     }
   }
 );
-
-
 
 // Home
 router.get("/home", verifyToken, (req: Request, res: Response) => {
   const homeData = {
     message: "Welcome to the home page!",
-    
   };
 
   res.status(200).json(homeData);
 });
 
-
 // Spotify Auth & Playlists
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 
-const SPOTIFY_REDIRECT_URIS: string[] = JSON.parse(
-  process.env.SPOTIFY_REDIRECT_URIS || "[]"
-);
-
-if (!Array.isArray(SPOTIFY_REDIRECT_URIS) || SPOTIFY_REDIRECT_URIS.length === 0) {
-  console.error("SPOTIFY_REDIRECT_URIS is not configured correctly in the environment.");
-}
 router.post("/spotifytoken", async (req: Request, res: Response) => {
   const { code, pathname }: { code: string; pathname?: string } = req.body;
 
@@ -361,20 +373,18 @@ router.post("/spotifytoken", async (req: Request, res: Response) => {
     return void res.status(400).json({ error: "Code fehlt in der Anfrage." });
   }
 
-  console.log("Empfangener Pfad:", pathname); // Debugging
+  let redirectUri: string | undefined;
 
-  // Wähle die Redirect-URI basierend auf dem Pfad
-  let redirectUri = "";
   if (pathname === "/music") {
-    redirectUri = process.env.VITE_MUSIC_REDIRECT_URI || "";
+    redirectUri = process.env.MUSIC;
   } else if (pathname === "/meditation") {
-    redirectUri = process.env.VITE_MEDI_REDIRECT_URI || "";
-  } else {
-    return void res.status(400).json({ error: "Ungültiger Pfad oder Redirect URI fehlt." });
+    redirectUri = process.env.SPOTIFY_REDIRECT_URI_MEDI;
   }
 
-  if (!redirectUri) {
-    return void res.status(500).json({ error: "Redirect URI ist nicht konfiguriert." });
+  if (!redirectUri || typeof redirectUri !== "string") {
+    return void res
+      .status(500)
+      .json({ error: "Redirect URI is not configured correctly." });
   }
 
   try {
@@ -384,8 +394,8 @@ router.post("/spotifytoken", async (req: Request, res: Response) => {
         grant_type: "authorization_code",
         code,
         redirect_uri: redirectUri,
-        client_id: process.env.SPOTIFY_CLIENT_ID || "",
-        client_secret: process.env.SPOTIFY_CLIENT_SECRET || "",
+        client_id: SPOTIFY_CLIENT_ID || "",
+        client_secret: SPOTIFY_CLIENT_SECRET || "",
       }).toString(),
       {
         headers: {
@@ -402,204 +412,92 @@ router.post("/spotifytoken", async (req: Request, res: Response) => {
   }
 });
 
+router.get(
+  "/spotify/playlists",
+  verifyToken,
+  async (req: AuthRequest, res: Response) => {
+    const accessToken = req.headers.authorization?.split(" ")[1];
 
+    if (!accessToken) {
+      return void res.status(400).json({ error: "Access Token is required" });
+    }
 
+    const query = req.query.q || "meditation";
 
-router.get('/spotify/playlists', verifyToken, async (req: AuthRequest, res: Response) => {
-  const accessToken = req.headers.authorization?.split(' ')[1]; 
-  
-  if (!accessToken) {
-    return void  res.status(400).json({ error: "Access Token is required" });
-  }
+    try {
+      const response = await axios.get("https://api.spotify.com/v1/search", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        params: {
+          q: query,
+          type: "playlist",
+          limit: 20,
+        },
+      });
 
+      const spotifyPlaylists = response.data.playlists.items.filter(
+        (playlist: any) => playlist.owner.id === "spotify"
+      );
 
-  const query = req.query.q || "meditation"; 
-  
-  try {
-    const response = await axios.get("https://api.spotify.com/v1/search", {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-      params: {
-        q: query, 
-        type: "playlist",
-        limit: 20,
-      },
-    });
-
-    const spotifyPlaylists = response.data.playlists.items.filter(
-      (playlist: any) => playlist.owner.id === "spotify"
-    );
-
-    return void res.status(200).json({ playlists: spotifyPlaylists });
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error("Spotify API error:", error.response?.data || error.message);
-      return void res.status(500).json({ error: "Failed to fetch playlists" });
-    } else {
-      console.error("Unexpected error:", error);
-      return void res.status(500).json({ error: "Unexpected error occurred" });
+      return void res.status(200).json({ playlists: spotifyPlaylists });
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error(
+          "Spotify API error:",
+          error.response?.data || error.message
+        );
+        return void res
+          .status(500)
+          .json({ error: "Failed to fetch playlists" });
+      } else {
+        console.error("Unexpected error:", error);
+        return void res
+          .status(500)
+          .json({ error: "Unexpected error occurred" });
+      }
     }
   }
-});
+);
 
-
-
-router.get('/spotify/playlists/:playlistId/tracks', async (req, res) => {
+router.get("/spotify/playlists/:playlistId/tracks", async (req, res) => {
   const playlistId = req.params.playlistId;
-  const accessToken = req.headers.authorization?.split(' ')[1];
+  const accessToken = req.headers.authorization?.split(" ")[1];
   if (!accessToken) {
-    return void res.status(400).send('Access token is missing');
+    return void res.status(400).send("Access token is missing");
   }
 
   try {
-    const response = await axios.get(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-    res.json(response.data); 
+    const response = await axios.get(
+      `https://api.spotify.com/v1/playlists/${playlistId}/tracks`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    res.json(response.data);
   } catch (error) {
-   
     const axiosError = error as AxiosError;
 
-    console.error('Error fetching tracks from Spotify:', axiosError);
+    console.error("Error fetching tracks from Spotify:", axiosError);
 
     if (axiosError.response) {
       console.error("Spotify API response error:", axiosError.response.data);
-      return void res.status(500).send(axiosError.response.data); 
+      return void res.status(500).send(axiosError.response.data);
     } else if (axiosError.request) {
       console.error("No response received from Spotify:", axiosError.request);
-      return void res.status(500).send('No response from Spotify API');
+      return void res.status(500).send("No response from Spotify API");
     } else {
       console.error("Error during request setup:", axiosError.message);
-      return void res.status(500).send('Error fetching data from Spotify');
+      return void res.status(500).send("Error fetching data from Spotify");
     }
   }
 });
 
-// router.get("/favorites/video/status", async (req, res) => {
-//   const { userId, contentId } = req.query;
-
-//   try {
-//     const user = await User.findById(userId);
-//     console.log("Status", user)
-//     if (!user) {
-//       return void res.status(404).json({ isFavorite: false });
-//     }
-
-//     const isFavorite = user.videoFavorites?.some(
-//       (fav) => fav.contentId === contentId
-//     );
-//     console.log("Is Favorite", isFavorite)
-
-//     res.status(200).json({ isFavorite });
-//   } catch (error) {
-//     res.status(500).json({ message: "Error fetching favorite status", error });
-//   }
-// });
+// ** Favorites Routes
 
 
-router.post("/favorites/audio/add", async (req, res) => {
-  const { userId, contentId } = req.body;
-
-  try {
-    const user = await User.findById(userId);
-    if (!user) {
-      return void res.status(404).json({ message: "User not found" });
-    }
-
-    const exists = user.audioFavorites?.some((fav) => fav.contentId === contentId);
-    if (exists) {
-      return void res.status(400).json({ message: "Audio already in favorites" });
-    }
-
-    user.audioFavorites?.push({ contentId, addedAt: new Date() });
-    await user.save();
-    res.status(200).json({ message: "Audio added to favorites" });
-  } catch (error) {
-    res.status(500).json({ message: "Error adding audio to favorites", error });
-  }
-});
-
-router.post("/favorites/audio/remove", async (req, res) => {
-  const { userId, contentId } = req.body;
-
-  try {
-    const user = await User.findById(userId);
-    if (!user) {
-      return void res.status(404).json({ message: "User not found" });
-    }
-
-    user.audioFavorites = user.audioFavorites?.filter((fav) => fav.contentId !== contentId);
-
-    await user.save();
-    res.status(200).json({ message: "Audio removed from favorites" });
-  } catch (error) {
-    res.status(500).json({ message: "Error removing audio from favorites", error });
-  }
-});
-
-router.post("/favorites/video/add", async (req: Request, res: Response): Promise<void> => {
-  const { userId, contentId } = req.body;
-
-  if (!userId || !userId.match(/^[0-9a-fA-F]{24}$/)) {
-    return void res.status(400).json({ message: "Invalid or missing userId" });
-  }
-
-  const cleanedContentId = contentId.replace(/^https?:\/\/[^/]+/, "");
-
-  try {
-    const user = await User.findById(userId);
-    if (!user) {
-      return void res.status(404).json({ message: "User not found" });
-    }
-
-    const exists = user.videoFavorites?.some((fav) => fav.contentId === cleanedContentId);
-    if (exists) {
-      return void res.status(400).json({ message: "Video already in favorites" });
-    }
-
-    user.videoFavorites = user.videoFavorites || [];
-    user.videoFavorites.push({ contentId: cleanedContentId, addedAt: new Date() });
-
-    await user.save();
-    res.status(200).json({ message: "Video added to favorites" });
-  } catch (error) {
-    console.error("Error in /favorites/video/add:", error);
-    res.status(500).json({ message: "Internal server error", error });
-  }
-});
-
-// POST: Video aus Favoriten entfernen
-router.post("/favorites/video/remove", async (req: Request, res: Response): Promise<void> => {
-  const { userId, contentId } = req.body;
-
-  if (!userId || !userId.match(/^[0-9a-fA-F]{24}$/)) {
-    return void res.status(400).json({ message: "Invalid or missing userId" });
-  }
-
-  const cleanedContentId = contentId.replace(/^https?:\/\/[^/]+/, "");
-
-  try {
-    const user = await User.findById(userId);
-    if (!user) {
-      return void res.status(404).json({ message: "User not found" });
-    }
-
-    user.videoFavorites = user.videoFavorites?.filter(
-      (fav) => fav.contentId !== cleanedContentId
-    );
-
-    await user.save();
-    res.status(200).json({ message: "Video removed from favorites" });
-  } catch (error) {
-    console.error("Error in /favorites/video/remove:", error);
-    res.status(500).json({ message: "Error removing video from favorites", error });
-  }
-});
-
-// GET: Favoritenstatus prüfen
 router.get("/favoritevideos", async (req: Request, res: Response): Promise<void> => {
   const { userId, contentId } = req.query as { userId: string; contentId: string };
 
@@ -627,7 +525,162 @@ router.get("/favoritevideos", async (req: Request, res: Response): Promise<void>
 });
 
 
+router.get("/favorites", verifyToken, async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id;
 
+  if (!userId) {
+    return void res.status(400).json({ message: "Benutzer-ID ist erforderlich" });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    if (!user || !user.videoFavorites) {
+      return void res.status(404).json({ message: "Favoriten nicht gefunden" });
+    }
+
+    const favoriteIds = user.videoFavorites.map((fav) =>
+      fav.contentId.replace(/^https?:\/\/[^/]+/, "")
+    );
+
+    const filePath = path.join(__dirname, "../data/videos.json");
+    const yogaVideos: Video[] = JSON.parse(fs.readFileSync(filePath, "utf8"));
+
+    const favoriteVideos = yogaVideos.filter((video) =>
+      favoriteIds.includes(video.videoUrl.replace(/^https?:\/\/[^/]+/, ""))
+    );
+
+    return void res.status(200).json(favoriteVideos);
+  } catch (error) {
+    console.error("Fehler beim Abrufen der Favoriten:", error);
+    return void res.status(500).json({ message: "Fehler beim Abrufen der Favoriten" });
+  }
+});
+
+
+
+router.post(
+  "/favorites/video/add",
+  async (req: Request, res: Response): Promise<void> => {
+    const { userId, contentId } = req.body;
+
+    if (!userId || !userId.match(/^[0-9a-fA-F]{24}$/)) {
+      return void res
+        .status(400)
+        .json({ message: "Invalid or missing userId" });
+    }
+
+    const cleanedContentId = contentId.replace(/^https?:\/\/[^/]+/, "");
+
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        return void res.status(404).json({ message: "User not found" });
+      }
+
+      const exists = user.videoFavorites?.some(
+        (fav) => fav.contentId === cleanedContentId
+      );
+      if (exists) {
+        return void res
+          .status(400)
+          .json({ message: "Video already in favorites" });
+      }
+
+      user.videoFavorites = user.videoFavorites || [];
+      user.videoFavorites.push({
+        contentId: cleanedContentId,
+        addedAt: new Date(),
+      });
+
+      await user.save();
+      res.status(200).json({ message: "Video added to favorites" });
+    } catch (error) {
+      console.error("Error in /favorites/video/add:", error);
+      res.status(500).json({ message: "Internal server error", error });
+    }
+  }
+);
+
+router.post(
+  "/favorites/video/remove",
+  async (req: Request, res: Response): Promise<void> => {
+    const { userId, contentId } = req.body;
+
+    if (!userId || !userId.match(/^[0-9a-fA-F]{24}$/)) {
+      return void res.status(400).json({ message: "Invalid or missing userId" });
+    }
+
+    const cleanedContentId = contentId.replace(/^https?:\/\/[^/]+/, "");
+
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        return void res.status(404).json({ message: "User not found" });
+      }
+
+      user.videoFavorites = user.videoFavorites?.filter(
+        (fav) => fav.contentId !== cleanedContentId
+      );
+
+      await user.save();
+      res.status(204).send(); // Keine Nachricht zurückgeben, nur Status 204
+    } catch (error) {
+      console.error("Error in /favorites/video/remove:", error);
+      res
+        .status(500)
+        .json({ message: "Error removing video from favorites", error });
+    }
+  }
+);
+
+
+router.post("/favorites/audio/add", async (req, res) => {
+  const { userId, contentId } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return void res.status(404).json({ message: "User not found" });
+    }
+
+    const exists = user.audioFavorites?.some(
+      (fav) => fav.contentId === contentId
+    );
+    if (exists) {
+      return void res
+        .status(400)
+        .json({ message: "Audio already in favorites" });
+    }
+
+    user.audioFavorites?.push({ contentId, addedAt: new Date() });
+    await user.save();
+    res.status(200).json({ message: "Audio added to favorites" });
+  } catch (error) {
+    res.status(500).json({ message: "Error adding audio to favorites", error });
+  }
+});
+
+router.post("/favorites/audio/remove", async (req, res) => {
+  const { userId, contentId } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return void res.status(404).json({ message: "User not found" });
+    }
+
+    user.audioFavorites = user.audioFavorites?.filter(
+      (fav) => fav.contentId !== contentId
+    );
+
+    await user.save();
+    res.status(200).json({ message: "Audio removed from favorites" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error removing audio from favorites", error });
+  }
+});
 
 
 
