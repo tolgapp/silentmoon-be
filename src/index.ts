@@ -3,6 +3,7 @@ import path from "path";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import routing from "./routes/routing";
+import spotifyRoutes from "./routes/spotifyRoutes"
 import cookieParser from 'cookie-parser';
 import cors from "cors";
 
@@ -19,7 +20,7 @@ app.use(cors({
   origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', "userid"],
   optionsSuccessStatus: 204
 }));
 
@@ -35,6 +36,7 @@ mongoose
 
 // Routen
 app.use("/api", routing);
+app.use("/api", spotifyRoutes)
 
 // Server-Start
 app.listen(PORT, () => {

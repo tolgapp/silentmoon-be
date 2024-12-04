@@ -10,6 +10,7 @@ export type User = {
   surname?: string;
   email: string;
   password: string;
+  image? : string;
   time?: string;
   days?: number[];
   hasCompletedSettings?: boolean;
@@ -31,6 +32,7 @@ const userSchema: Schema<UserDocument> = new Schema(
     name: { type: String, required: true },
     surname: { type: String, required: false },
     email: { type: String, required: true, unique: true },
+    image: { type: String },
     password: { type: String, required: true },
     time: { type: String, default: "" },
     days: { type: [Number], default: [] },
