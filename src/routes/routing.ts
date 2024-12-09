@@ -11,7 +11,6 @@ import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import { UserModel as User } from "../models/user.model";
-import axios, { AxiosError } from "axios";
 
 interface AuthRequest extends Request {
   user?: {
@@ -257,6 +256,9 @@ router.post(
         message: "Settings successfully saved.",
         time: updatedUser.time,
         days: updatedUser.days,
+        user: {
+          hasCompletedSettings: updatedUser.hasCompletedSettings,
+        },
       });
     } catch (error) {
       console.error("Error saving settings:", error);
@@ -346,6 +348,83 @@ router.get("/home", verifyToken, (req: Request, res: Response) => {
 });
 
 // **** Favorites Video Routes ****
+router.post(
+  "/favorites/video/add",
+  async (req: Request, res: Response): Promise<void> => {
+    const { userId, contentId } = req.body;
+
+    if (!userId || !userId.match(/^[0-9a-fA-F]{24}$/)) {
+      return void res
+        .status(400)
+        .json({ message: "Invalid or missing userId" });
+    }
+
+    const cleanedContentId = contentId.replace(/^https?:\/\/[^/]+/, "");
+
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        return void res.status(404).json({ message: "User not found" });
+      }
+
+      const exists = user.videoFavorites?.some(
+        (fav) => fav.contentId === cleanedContentId
+      );
+      if (exists) {
+        return void res
+          .status(400)
+          .json({ message: "Video already in favorites" });
+      }
+
+      user.videoFavorites = user.videoFavorites || [];
+      user.videoFavorites.push({
+        contentId: cleanedContentId,
+        addedAt: new Date(),
+      });
+
+      await user.save();
+      res.status(200).json({ message: "Video added to favorites" });
+    } catch (error) {
+      console.error("Error in /favorites/video/add:", error);
+      res.status(500).json({ message: "Internal server error", error });
+    }
+  }
+);
+
+router.post(
+  "/favorites/video/remove",
+  async (req: Request, res: Response): Promise<void> => {
+    const { userId, contentId } = req.body;
+
+    if (!userId || !userId.match(/^[0-9a-fA-F]{24}$/)) {
+      return void res
+        .status(400)
+        .json({ message: "Invalid or missing userId" });
+    }
+
+    const cleanedContentId = contentId.replace(/^https?:\/\/[^/]+/, "");
+
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        return void res.status(404).json({ message: "User not found" });
+      }
+
+      user.videoFavorites = user.videoFavorites?.filter(
+        (fav) => fav.contentId !== cleanedContentId
+      );
+
+      await user.save();
+      res.status(204).send(); // Keine Nachricht zurückgeben, nur Status 204
+    } catch (error) {
+      console.error("Error in /favorites/video/remove:", error);
+      res
+        .status(500)
+        .json({ message: "Error removing video from favorites", error });
+    }
+  }
+);
+
 router.get(
   "/favoritevideos",
   async (req: Request, res: Response): Promise<void> => {
@@ -426,81 +505,5 @@ router.get(
   }
 );
 
-router.post(
-  "/favorites/video/add",
-  async (req: Request, res: Response): Promise<void> => {
-    const { userId, contentId } = req.body;
-
-    if (!userId || !userId.match(/^[0-9a-fA-F]{24}$/)) {
-      return void res
-        .status(400)
-        .json({ message: "Invalid or missing userId" });
-    }
-
-    const cleanedContentId = contentId.replace(/^https?:\/\/[^/]+/, "");
-
-    try {
-      const user = await User.findById(userId);
-      if (!user) {
-        return void res.status(404).json({ message: "User not found" });
-      }
-
-      const exists = user.videoFavorites?.some(
-        (fav) => fav.contentId === cleanedContentId
-      );
-      if (exists) {
-        return void res
-          .status(400)
-          .json({ message: "Video already in favorites" });
-      }
-
-      user.videoFavorites = user.videoFavorites || [];
-      user.videoFavorites.push({
-        contentId: cleanedContentId,
-        addedAt: new Date(),
-      });
-
-      await user.save();
-      res.status(200).json({ message: "Video added to favorites" });
-    } catch (error) {
-      console.error("Error in /favorites/video/add:", error);
-      res.status(500).json({ message: "Internal server error", error });
-    }
-  }
-);
-
-router.post(
-  "/favorites/video/remove",
-  async (req: Request, res: Response): Promise<void> => {
-    const { userId, contentId } = req.body;
-
-    if (!userId || !userId.match(/^[0-9a-fA-F]{24}$/)) {
-      return void res
-        .status(400)
-        .json({ message: "Invalid or missing userId" });
-    }
-
-    const cleanedContentId = contentId.replace(/^https?:\/\/[^/]+/, "");
-
-    try {
-      const user = await User.findById(userId);
-      if (!user) {
-        return void res.status(404).json({ message: "User not found" });
-      }
-
-      user.videoFavorites = user.videoFavorites?.filter(
-        (fav) => fav.contentId !== cleanedContentId
-      );
-
-      await user.save();
-      res.status(204).send(); // Keine Nachricht zurückgeben, nur Status 204
-    } catch (error) {
-      console.error("Error in /favorites/video/remove:", error);
-      res
-        .status(500)
-        .json({ message: "Error removing video from favorites", error });
-    }
-  }
-);
 
 export default router;
