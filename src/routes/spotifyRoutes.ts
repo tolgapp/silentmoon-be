@@ -17,7 +17,6 @@ interface SpotifyTokenResponse {
   expires_in: number; 
 }
 
-
 const validateAccessToken = async (req: Request, res: Response, next: NextFunction) => {
   let accessToken = res.locals.accessToken || req.headers.authorization?.split(" ")[1];
   const refreshToken = req.headers["x-refresh-token"] as string;
@@ -48,7 +47,7 @@ const validateAccessToken = async (req: Request, res: Response, next: NextFuncti
         );
 
         accessToken = response.data.access_token;
-        const expiresIn = response.data.expires_in * 1000; // in Millisekunden
+        const expiresIn = response.data.expires_in * 1000;
         const expirationTime = Date.now() + expiresIn;
 
         res.locals.accessToken = accessToken;
@@ -71,7 +70,6 @@ const validateAccessToken = async (req: Request, res: Response, next: NextFuncti
   next();
 };
 
-
 router.post("/spotify/token", async (req: Request, res: Response) => {
   const { code, redirectUri } = req.body; 
   if (!code || !redirectUri) {
@@ -92,8 +90,6 @@ router.post("/spotify/token", async (req: Request, res: Response) => {
       client_secret: SPOTIFY_CLIENT_SECRET,
     });
 
-    
-  
     const response = await axios.post(
       "https://accounts.spotify.com/api/token",
       data.toString(),
@@ -103,22 +99,21 @@ router.post("/spotify/token", async (req: Request, res: Response) => {
         },
       }
     );
-  
+
     const { access_token, refresh_token } = response.data;
     res.json({ access_token, refresh_token }); 
   } catch (error) {
     console.error("Error fetching Spotify token:", error);
-  
+
     if (axios.isAxiosError(error)) {
       console.error("Axios error response:", error.response?.data); 
       return void res.status(500).json({
         error: error.response?.data || "Failed to fetch Spotify token",
       });
     }
-  
+
     return void res.status(500).json({ error: "An unknown error occurred." });
   }
-  
 });
 
 router.get("/spotify/playlists", validateAccessToken, async (req: Request, res: Response) => {
@@ -131,11 +126,10 @@ router.get("/spotify/playlists", validateAccessToken, async (req: Request, res: 
         Authorization: `Bearer ${accessToken}`,
       },
       params: {
-        
-       q: query, 
+        q: query,
         type: "playlist",
         limit: 10,
-        market: "DE"
+        market: "DE",
       },
     });
 
@@ -163,14 +157,13 @@ router.get('/spotify/playlists/:playlistId/tracks', async (req, res) => {
     });
     res.json(response.data); 
   } catch (error) {
-    // Typisierung des Fehlerobjekts als AxiosError
     const axiosError = error as AxiosError;
 
     console.error('Error fetching tracks from Spotify:', axiosError);
 
     if (axiosError.response) {
       console.error("Spotify API response error:", axiosError.response.data);
-      return void res.status(500).send(axiosError.response.data); // Detaillierte Fehlerantwort von Spotify zurückgeben
+      return void res.status(500).send(axiosError.response.data);
     } else if (axiosError.request) {
       console.error("No response received from Spotify:", axiosError.request);
       return void res.status(500).send('No response from Spotify API');
@@ -182,9 +175,7 @@ router.get('/spotify/playlists/:playlistId/tracks', async (req, res) => {
 });
 
 router.post("/user/spotify-favorites/add", async (req: Request, res: Response) => {
-  console.log("POST userID", req.body)
-
-  const { userId, contentId , playlistName} = req.body;
+  const { userId, contentId, playlistName } = req.body;
 
   if (!userId || !contentId || !playlistName) {
     return void res.status(400).json({ message: "User ID, Content ID, and Playlist Name are required." });
@@ -265,6 +256,36 @@ router.get("/user/spotify-favorites/details", validateAccessToken, async (req: R
   }
 });
 
+router.post("/user/spotify-favorites/remove", async (req: Request, res: Response) => {
+  const { userId, contentId } = req.body;
+
+  if (!userId || !contentId) {
+    return void res.status(400).json({ message: "User ID and Content ID are required." });
+  }
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return void res.status(404).json({ message: "User not found." });
+    }
+
+    const initialLength = user.spotifyFavorites?.length || 0;
+    user.spotifyFavorites = user.spotifyFavorites?.filter(
+      (favorite) => favorite.contentId !== contentId
+    );
+
+    if (initialLength === user.spotifyFavorites?.length) {
+      return void res.status(400).json({ message: "Playlist not found in favorites." });
+    }
+
+    await user.save();
+    res.status(200).json({ message: "Playlist removed from favorites." });
+  } catch (error) {
+    res.status(500).json({ message: "Error removing favorite.", error });
+  }
+});
+
 router.get("/playlists/meditation/random-audio", validateAccessToken, async (req: Request, res: Response) => {
   try {
     const accessToken = res.locals.accessToken;
@@ -279,13 +300,17 @@ router.get("/playlists/meditation/random-audio", validateAccessToken, async (req
     );
 
     const playlists = playlistsResponse.data.playlists?.items || [];
-    console.log(playlists)
+
     if (!playlists.length) {
       console.error("No playlists found");
       return void res.status(404).json({ error: "No meditation playlists found" });
     }
+    let randomPlaylist;
 
-    const randomPlaylist = playlists[Math.floor(Math.random() * playlists.length)];
+    do {
+        randomPlaylist = playlists[Math.floor(Math.random() * playlists.length)];
+    } while (!randomPlaylist);    
+
     if (!randomPlaylist || !randomPlaylist.id) {
       console.error("Random playlist selection failed:", randomPlaylist);
       return void res.status(500).json({ error: "Failed to select a random playlist" });
@@ -326,7 +351,5 @@ router.get("/playlists/meditation/random-audio", validateAccessToken, async (req
     res.status(500).json({ error: "Failed to fetch random meditation audio" });
   }
 });
-
-
 
 export default router;

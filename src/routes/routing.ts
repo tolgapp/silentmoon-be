@@ -142,10 +142,10 @@ router.post("/logout", (req: Request, res: Response) => {
       path: "/",
     });
 
-    res.status(200).json({ message: "Logout erfolgreich" });
+    res.status(200).json({ message: "Logout successful" });
   } catch (error) {
-    console.error("Fehler beim Logout:", error);
-    res.status(500).json({ message: "Interner Fehler beim Logout" });
+    console.error("Error during logout:", error);
+    res.status(500).json({ message: "Internal error during logout" });
   }
 });
 
@@ -415,7 +415,7 @@ router.post(
       );
 
       await user.save();
-      res.status(204).send(); // Keine Nachricht zurückgeben, nur Status 204
+      res.status(204).send(); 
     } catch (error) {
       console.error("Error in /favorites/video/remove:", error);
       res
