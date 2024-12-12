@@ -179,8 +179,8 @@ router.get("/yogavideos", verifyToken, (req: Request, res: Response) => {
   const filePath = path.join(__dirname, "../data/videos.json");
   fs.readFile(filePath, "utf8", (err, data) => {
     if (err) {
-      console.error("Fehler beim Lesen der yogaVideos.json-Datei:", err);
-      res.status(500).json({ message: "Fehler beim Abrufen der Yoga-Videos." });
+      console.error("Error reading yogaVideos.json file:", err);
+      res.status(500).json({ message: "Error retrieving Yoga videos." });
       return;
     }
 
@@ -189,12 +189,12 @@ router.get("/yogavideos", verifyToken, (req: Request, res: Response) => {
       res.status(200).json(yogaVideos);
     } catch (parseError) {
       console.error(
-        "Fehler beim Verarbeiten der yogaVideos.json-Datei:",
+        "Error processing yogaVideos.json file:",
         parseError
       );
       res
         .status(500)
-        .json({ message: "Fehler beim Verarbeiten der Yoga-Videos." });
+        .json({ message: "Error processing Yoga videos." });
     }
   });
 });
@@ -203,8 +203,8 @@ router.get("/meditation", verifyToken, (req: Request, res: Response) => {
   const filePath = path.join(__dirname, "../data/meditate.json");
   fs.readFile(filePath, "utf8", (err, data) => {
     if (err) {
-      console.error("Fehler beim Lesen der meditate.json-Datei:", err);
-      res.status(500).json({ message: "Fehler beim Abrufen der Yoga-Videos." });
+      console.error("Error reading meditate.json file:", err);
+      res.status(500).json({ message: "Error retrieving Yoga videos." });
       return;
     }
 
@@ -213,12 +213,12 @@ router.get("/meditation", verifyToken, (req: Request, res: Response) => {
       res.status(200).json(meditateData);
     } catch (parseError) {
       console.error(
-        "Fehler beim Verarbeiten der yogaVideos.json-Datei:",
+        "Error processing meditate.json file:",
         parseError
       );
       res
         .status(500)
-        .json({ message: "Fehler beim Verarbeiten der Yoga-Videos." });
+        .json({ message: "Error processing Yoga videos." });
     }
   });
 });
@@ -473,7 +473,7 @@ router.get(
     if (!userId) {
       return void res
         .status(400)
-        .json({ message: "Benutzer-ID ist erforderlich" });
+        .json({ message: "User ID is required" });
     }
 
     try {
@@ -481,7 +481,7 @@ router.get(
       if (!user || !user.videoFavorites) {
         return void res
           .status(404)
-          .json({ message: "Favoriten nicht gefunden" });
+          .json({ message: "Favorites not found" });
       }
 
       const favoriteIds = user.videoFavorites.map((fav) =>
@@ -497,10 +497,10 @@ router.get(
 
       return void res.status(200).json(favoriteVideos);
     } catch (error) {
-      console.error("Fehler beim Abrufen der Favoriten:", error);
+      console.error("Error retrieving favorites:", error);
       return void res
         .status(500)
-        .json({ message: "Fehler beim Abrufen der Favoriten" });
+        .json({ message: "Error retrieving favorites" });
     }
   }
 );
