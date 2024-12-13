@@ -10,7 +10,7 @@ import cors from "cors";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5002;
+const PORT = process.env.PORT || 10000;
 const allowedOrigins = process.env.FRONTEND_LINK;
 
 app.use(express.json());
@@ -24,7 +24,7 @@ app.use(cors({
 }));
 
 app.use('/images', express.static(path.join(__dirname, '../public/images')));
-app.use('/videos', express.static(path.join(__dirname, '../public/videos')));
+app.use('/api/videos', express.static(path.join(__dirname, '../public/videos')));
 
 mongoose
   .connect(process.env.MONGO_URI as string)
