@@ -13,7 +13,6 @@ const app = express();
 const PORT = process.env.PORT || 5002;
 const allowedOrigins = process.env.FRONTEND_LINK;
 
-// Middleware for parsing JSON
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
@@ -24,21 +23,17 @@ app.use(cors({
   optionsSuccessStatus: 204
 }));
 
-// Statische Routen für Bilder und Videos
 app.use('/images', express.static(path.join(__dirname, '../public/images')));
 app.use('/videos', express.static(path.join(__dirname, '../public/videos')));
 
-// MongoDB-Verbindung mit Mongoose
 mongoose
   .connect(process.env.MONGO_URI as string)
   .then(() => console.log("Connected to MongoDB"))
   .catch((error) => console.log("MongoDB connection error", error));
 
-// Routen
 app.use("/api", routing);
 app.use("/api", spotifyRoutes)
 
-// Server-Start
 app.listen(PORT, () => {
   console.log(`Server is running on Port ${PORT}`);
 });
