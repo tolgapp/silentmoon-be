@@ -174,12 +174,82 @@ router.get('/spotify/playlists/:playlistId/tracks', async (req, res) => {
   }
 });
 
+router.get(
+  "/user/spotify-favorites/details",
+  validateAccessToken,
+  async (req: Request, res: Response) => {
+    const { userId } = req.query;
+
+    if (!userId) {
+      return void res.status(400).json({ message: "User ID is required." });
+    }
+
+    try {
+      const user = await User.findById(userId);
+      if (!user || !user.spotifyFavorites?.length) {
+        return void res
+          .status(404)
+          .json({ message: "No favorites found for this user." });
+      }
+
+      const accessToken = res.locals.accessToken;
+
+      const favoriteDetailsPromises = user.spotifyFavorites.map(
+        async (favorite) => {
+          try {
+            const response = await axios.get(
+              `${SPOTIFY_API_BASE_URL}/playlists/${favorite.contentId}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                },
+              }
+            );
+
+            const data = response.data;
+
+            return {
+              id: data.id,
+              name: data.name,
+              image: data.images[0]?.url,
+              description: data.description,
+              uri: data.uri,
+              tracks: data.tracks,
+              addedAt: favorite.addedAt,
+            };
+          } catch (error) {
+            console.error(
+              `Error fetching details for playlist ${favorite.contentId}:`,
+              error
+            );
+            return null;
+          }
+        }
+      );
+
+      const favoritesDetails = await Promise.all(favoriteDetailsPromises);
+
+      const filteredFavorites = favoritesDetails.filter(Boolean);
+
+      res.status(200).json(filteredFavorites);
+    } catch (error) {
+      console.error("Error fetching favorite details:", error);
+      res
+        .status(500)
+        .json({ message: "Error fetching favorite details.", error });
+    }
+  }
+);
+
 router.post("/user/spotify-favorites/add", async (req: Request, res: Response) => {
   const { userId, contentId, playlistName } = req.body;
 
-  if (!userId || !contentId || !playlistName) {
-    return void res.status(400).json({ message: "User ID, Content ID, and Playlist Name are required." });
-  }  
+  // Input validation
+  if (typeof userId !== "string" || typeof contentId !== "string" || typeof playlistName !== "string") {
+    return void res.status(400).json({
+      message: "Invalid input: userId, contentId, and playlistName must be strings.",
+    });
+  }
 
   try {
     const user = await User.findById(userId);
@@ -188,71 +258,34 @@ router.post("/user/spotify-favorites/add", async (req: Request, res: Response) =
       return void res.status(404).json({ message: "User not found." });
     }
 
-    const exists = user.spotifyFavorites?.some(
-      (favorite) => favorite.contentId === contentId
+    const alreadyExists = user.spotifyFavorites?.some(
+      (fav: { contentId: string; }) => fav.contentId === contentId
     );
 
-    if (exists) {
-      return void res.status(400).json({ message: "Playlist is already in favorites." });
+    if (alreadyExists) {
+      return void res.status(409).json({ message: "Playlist is already in favorites." });
     }
 
-    user.spotifyFavorites?.push({ contentId, playlistName, addedAt: new Date() });
+    const favorite = {
+      contentId,
+      playlistName,
+      addedAt: new Date(),
+    };
+
+    user.spotifyFavorites?.push(favorite);
+
     await user.save();
 
-    res.status(200).json({ message: "Playlist added to favorites." });
-  } catch (error) {
-    res.status(500).json({ message: "Error adding favorite.", error });
-  }
-});
-
-router.get("/user/spotify-favorites/details", validateAccessToken, async (req: Request, res: Response) => {
-  const { userId } = req.query;
-
-  if (!userId) {
-    return void res.status(400).json({ message: "User ID is required." });
-  }
-
-  try {
-    const user = await User.findById(userId);
-    if (!user || !user.spotifyFavorites?.length) {
-      return void res.status(404).json({ message: "No favorites found for this user." });
-    }
-
-    const accessToken = res.locals.accessToken;
-
-    const favoriteDetailsPromises = user.spotifyFavorites.map(async (favorite) => {
-      try {
-        const response = await axios.get(`${SPOTIFY_API_BASE_URL}/playlists/${favorite.contentId}`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-
-        const data = response.data;
-
-        return {
-          id: data.id,
-          name: data.name,
-          image: data.images[0]?.url,
-          description: data.description,
-          uri: data.uri, 
-          tracks: data.tracks,
-          addedAt: favorite.addedAt,
-        };
-      } catch (error) {
-        console.error(`Error fetching details for playlist ${favorite.contentId}:`, error);
-        return null; 
-      }
+    res.status(201).json({
+      message: "Playlist added to favorites successfully.",
+      favorite,
     });
-
-    const favoritesDetails = await Promise.all(favoriteDetailsPromises);
-
-    const filteredFavorites = favoritesDetails.filter(Boolean);
-
-    res.status(200).json(filteredFavorites);
   } catch (error) {
-    console.error("Error fetching favorite details:", error);
-    res.status(500).json({ message: "Error fetching favorite details.", error });
+    console.error("Error adding favorite:", error);
+    res.status(500).json({
+      message: "Internal server error while adding favorite.",
+      error: (error as Error).message,
+    });
   }
 });
 
@@ -285,6 +318,38 @@ router.post("/user/spotify-favorites/remove", async (req: Request, res: Response
     res.status(500).json({ message: "Error removing favorite.", error });
   }
 });
+
+router.get(
+  "/user/spotify-favorites/status",
+  async (req: Request, res: Response) => {
+    const { userId, contentId } = req.query;
+
+    if (!userId || !contentId) {
+      return void res
+        .status(400)
+        .json({ message: "User ID and Content ID are required." });
+    }
+
+    try {
+      const user = await User.findById(userId.toString());
+
+      if (!user) {
+        return void res.status(404).json({ message: "User not found." });
+      }
+
+      const exists = user.spotifyFavorites?.some(
+        (favorite) => favorite.contentId === contentId
+      );
+
+      res.status(200).json({ isFavorite: !!exists });
+    } catch (error) {
+      console.error("Error checking favorite status:", error);
+      res
+        .status(500)
+        .json({ message: "Error checking favorite status.", error });
+    }
+  }
+);
 
 router.get("/playlists/meditation/random-audio", validateAccessToken, async (req: Request, res: Response) => {
   try {
