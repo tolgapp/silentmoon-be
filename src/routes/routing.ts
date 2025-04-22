@@ -149,7 +149,6 @@ router.post("/logout", (req: Request, res: Response) => {
   }
 });
 
-
 router.get(
   "/protected",
   verifyToken,
@@ -225,12 +224,46 @@ router.get("/meditation", verifyToken, (req: Request, res: Response) => {
 });
 
 // Settings - Create & Update
+router.get(
+  "/settings",
+  verifyToken,
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return void res.status(400).json({ message: "User ID is required." });
+    }
+
+    try {
+      const user = await User.findById(userId).select(
+        "time days hasCompletedSettings"
+      );
+
+      if (!user) {
+        return void res.status(404).json({ message: "User not found." });
+      }
+
+      console.log(user.time, user.days, user.hasCompletedSettings)
+      return void res.status(200).json({
+        time: user.time,
+        days: user.days,
+        hasCompletedSettings: user.hasCompletedSettings,
+      });
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+      return void res.status(500).json({ message: "Error fetching settings." });
+    }
+  }
+);
+
 router.post(
   "/settings",
   verifyToken,
   async (req: AuthRequest, res: Response): Promise<void> => {
     const userId = req.user?.id;
     const { time, days } = req.body;
+
+    console.log(time,days)
 
     if (!time || !Array.isArray(days)) {
       return void res
@@ -304,37 +337,6 @@ router.put(
     } catch (error) {
       console.error("Error updating settings:", error);
       return void res.status(500).json({ message: "Error updating settings." });
-    }
-  }
-);
-
-router.get(
-  "/settings",
-  verifyToken,
-  async (req: AuthRequest, res: Response): Promise<void> => {
-    const userId = req.user?.id;
-
-    if (!userId) {
-      return void res.status(400).json({ message: "User ID is required." });
-    }
-
-    try {
-      const user = await User.findById(userId).select(
-        "time days hasCompletedSettings"
-      );
-
-      if (!user) {
-        return void res.status(404).json({ message: "User not found." });
-      }
-
-      return void res.status(200).json({
-        time: user.time,
-        days: user.days,
-        hasCompletedSettings: user.hasCompletedSettings,
-      });
-    } catch (error) {
-      console.error("Error fetching settings:", error);
-      return void res.status(500).json({ message: "Error fetching settings." });
     }
   }
 );
@@ -505,6 +507,5 @@ router.get(
     }
   }
 );
-
 
 export default router;
