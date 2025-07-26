@@ -16,7 +16,6 @@ export const getSettingsRoute = async (req: AuthRequest, res: Response): Promise
       return void res.status(404).json({ message: 'User not found.' });
     }
 
-    console.log(user.time, user.days, user.hasCompletedSettings);
     return void res.status(200).json({
       time: user.time,
       days: user.days,
@@ -31,8 +30,6 @@ export const getSettingsRoute = async (req: AuthRequest, res: Response): Promise
 export const postSettingsRoute = async (req: AuthRequest, res: Response): Promise<void> => {
   const userId = req.user?.id;
   const { time, days } = req.body;
-
-  console.log(time, days);
 
   if (!time || !Array.isArray(days)) {
     return void res.status(400).json({ message: 'Time and days are required.' });
