@@ -39,6 +39,6 @@ mongoose
 app.use("/api", routing);
 app.use("/api", spotifyRoutes);
 
-app.listen(PORT, () => {
-  console.log(`Server is running on Port ${PORT}`);
+app.get("/", (req, res) => {
+  res.send("Welcome to the API");
 });
