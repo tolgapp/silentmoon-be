@@ -10,5 +10,6 @@
     "forceConsistentCasingInFileNames": true,
     "typeRoots": ["./node_modules/@types", "./src/@types"]
   },
-  "include": ["src/**/*", "src/express.d.ts"]
+  "include": ["src/**/*", "src/express.d.ts"],
+  "exclude": ["node_modules", "dist", "src/**/*.test.ts", ".vercel"]
 }
