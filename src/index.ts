@@ -10,11 +10,11 @@ import cors from 'cors';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5002;
 const allowedOrigins = process.env.FRONTEND_LINK;
 
 app.use(express.json());
 app.use(cookieParser());
+console.log('Allowed Origins:', allowedOrigins);
 app.use(
   cors({
     origin: allowedOrigins,
@@ -33,9 +33,14 @@ mongoose
   .then(() => console.log('Connected to MongoDB'))
   .catch(error => console.log('MongoDB connection error', error));
 
-app.get('/', (req: Request, res: Response) => void res.send('Express on Vercel'));
-
 app.use('/api', routing);
 app.use('/api', spotifyRoutes);
+
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5002;
+  app.listen(PORT, () => {
+    console.log(`Server running on Port ${PORT}`);
+  });
+}
 
 export default app;
