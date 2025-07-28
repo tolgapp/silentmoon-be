@@ -42,7 +42,6 @@ export const postSpotifyToken = async (req: Request, res: Response) => {
         error: error.response?.data || 'Failed to fetch Spotify token',
       });
     }
-
     return void res.status(500).json({ error: 'An unknown error occurred.' });
   }
 };
