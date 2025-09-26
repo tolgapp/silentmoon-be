@@ -35,7 +35,7 @@
     "@types/jsonwebtoken": "^9.0.7",
     "@types/multer": "^1.4.12",
     "@types/node": "^22.8.5",
-    "@vercel/node": "^5.3.7",
+    "@vercel/node": "^4.0.0",
     "nodemon": "^3.1.7",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.3"
