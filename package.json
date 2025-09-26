@@ -24,6 +24,7 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.18.2",
+    "path-to-regexp": "^8.3.0",
     "serverless-http": "^3.2.0"
   },
   "devDependencies": {
@@ -38,8 +39,5 @@
     "nodemon": "^3.1.7",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.3"
-  },
-  "overrides": {
-    "path-to-regexp": "^0.1.12"
   }
 }
